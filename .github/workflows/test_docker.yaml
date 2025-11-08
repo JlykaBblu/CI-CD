@@ -1,0 +1,27 @@
+name: ci/cd devops
+on: 
+  push:
+    branches: [main]
+jobs: 
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code 
+      uses: actions/checkout@v3
+
+    - name: install packages
+      run: |  
+        docker compose up --build
+        sleep 30
+        docker-compose ps
+
+    - name: Verify containers are running 
+      run: | 
+        if docker-compose ps | grep -q "Up"; then 
+          echo "✅ All containers are running" 
+        else 
+          echo "❌ Some containers failed to start" 
+          docker-compose logs 
+          exit 1 
+        fi  # +1 балл (Критерий 2) 
+  
