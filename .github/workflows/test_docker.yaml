@@ -44,8 +44,9 @@ jobs:
 
     - name: Build and run containers  
       run: |
-        docker compose -f Docker-compose.yaml up --build
+        docker compose -f Docker-compose.yaml up -d
         Start-Sleep -Seconds 30
+        docker compose ps
 
     - name: "docker compose ps"
       run: docker compose ps   
