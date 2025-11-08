@@ -1,8 +1,36 @@
-name: ci/cd devops
-on: 
+# name: ci/cd devops
+# on: 
+#   push:
+#     branches: [main]
+# jobs: 
+#   build:
+#     runs-on: ubuntu-latest
+#     steps:
+#     - name: Checkout code 
+#       uses: actions/checkout@v3
+
+#     - name: Set up Docker Compose
+#       uses: docker/setup-compose-action@v1
+#       with:
+#         version: latest
+#     - name: install packages
+#       run: |  
+#         docker compose up --build
+
+#     - name: Verify containers are running 
+#       run: | 
+#         if docker-compose ps | grep -q "Up"; then 
+#           echo "✅ All containers are running" 
+#         else 
+#           echo "❌ Some containers failed to start" 
+#           docker-compose logs 
+#           exit 1 
+#         fi  # +1 балл (Критерий 2) 
+ name: ci/cd devops
+ on: 
   push:
     branches: [main]
-jobs: 
+ jobs: 
   build:
     runs-on: ubuntu-latest
     steps:
@@ -13,17 +41,22 @@ jobs:
       uses: docker/setup-compose-action@v1
       with:
         version: latest
-    - name: install packages
+
+    - name: Build and run containers  # Исправлено название шага
       run: |  
+        # Опционально: проверьте наличие файла
+        if [ ! -f docker-compose.yml ]; then
+          echo "❌ docker-compose.yml not found"
+          exit 1
+        fi
         docker compose up --build
 
     - name: Verify containers are running 
       run: | 
-        if docker-compose ps | grep -q "Up"; then 
+        if docker compose ps | grep -q "Up"; then 
           echo "✅ All containers are running" 
         else 
           echo "❌ Some containers failed to start" 
-          docker-compose logs 
+          docker compose logs 
           exit 1 
         fi  # +1 балл (Критерий 2) 
-  
