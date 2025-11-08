@@ -12,8 +12,6 @@ jobs:
     - name: install packages
       run: |  
         docker compose up --build
-        sleep 30
-        docker-compose ps
 
     - name: Verify containers are running 
       run: | 
