@@ -46,7 +46,9 @@ jobs:
       run: |
         docker compose -f Docker-compose.yaml up --build
         Start-Sleep -Seconds 30
-        docker compose ps
+
+    - name: "docker compose ps"
+      run: docker compose ps   
 
     - name: Verify containers are running 
       run: |  # PowerShell по умолчанию на Windows
