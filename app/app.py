@@ -3,6 +3,7 @@ import os
 import pymysql
 from pymysql.cursors import DictCursor, Cursor  
 app = Flask(__name__)
+spartak="champion"
 DB_HOST = os.getenv('DB_HOST', 'db')
 DB_PORT = int(os.getenv('DB_PORT', 3306))  
 DB_NAME = os.getenv('DB_NAME', 'mydb')
