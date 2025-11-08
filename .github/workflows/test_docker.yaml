@@ -45,8 +45,8 @@
     - name: Build and run containers  # Исправлено название шага
       run: |  
         # Опционально: проверьте наличие файла
-        if [ ! -f docker-compose.yml ]; then
-          echo "❌ docker-compose.yml not found"
+        if [ ! -f Docker-compose.yaml ]; then
+          echo "❌ Docker-compose.yaml not found"
           exit 1
         fi
         docker compose up --build
@@ -59,4 +59,4 @@
           echo "❌ Some containers failed to start" 
           docker compose logs 
           exit 1 
-        fi  # +1 балл (Критерий 2) 
+        fi  # +1 балл (Критерий 2) git
