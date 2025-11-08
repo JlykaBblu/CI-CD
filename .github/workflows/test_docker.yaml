@@ -45,11 +45,11 @@
     - name: Build and run containers  # Исправлено название шага
       run: |  
         # Опционально: проверьте наличие файла
-        if [ ! -f docker-compose.yaml ]; then
-          echo "❌ docker-compose.yaml not found"
+        if [ ! -f Docker-compose.yaml ]; then
+          echo "❌ Docker-compose.yaml not found"
           exit 1
         fi
-        docker compose -f docker-compose.yaml up --build
+        docker compose -f Docker-compose.yaml up --build
 
     - name: Verify containers are running 
       run: | 
