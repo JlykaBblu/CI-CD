@@ -1,48 +1,47 @@
-# name: ci/cd devops
-# on: 
+#  name: ci/cd devops
+#  on: 
 #   push:
 #     branches: [main]
-# jobs: 
+#  jobs: 
 #   build:
-#     runs-on: ubuntu-latest
+#     runs-on: self-hosted
 #     steps:
 #     - name: Checkout code 
 #       uses: actions/checkout@v3
 
-#     - name: Set up Docker Compose
-#       uses: docker/setup-compose-action@v1
-#       with:
-#         version: latest
-#     - name: install packages
+#     - name: Build and run containers  
 #       run: |  
-#         docker compose up --build
+#         # Опционально: проверьте наличие файла
+#         if [ ! -f Docker-compose.yaml ]; then
+#           echo "❌ Docker-compose.yaml not found"
+#           exit 1
+#         fi
+#         docker compose -f Docker-compose.yaml up --build
+#         sleep 30
+#         docker-compose ps
 
 #     - name: Verify containers are running 
 #       run: | 
-#         if docker-compose ps | grep -q "Up"; then 
+#         if docker compose ps | grep -q "Up"; then 
 #           echo "✅ All containers are running" 
 #         else 
 #           echo "❌ Some containers failed to start" 
-#           docker-compose logs 
+#           docker compose logs 
 #           exit 1 
-#         fi  # +1 балл (Критерий 2) 
- name: ci/cd devops
- on: 
+#         fi  # +1 балл (Критерий 2) git
+name: ci/cd devops
+on: 
   push:
     branches: [main]
- jobs: 
+jobs: 
   build:
-    runs-on: self-hosted
+    runs-on: self-hosted  # Изменено на windows-latest для Windows 10 x64 (GitHub-hosted runner; если self-hosted, настройте runner на Windows 10)
     steps:
     - name: Checkout code 
       uses: actions/checkout@v3
 
-    - name: Set up Docker Compose
-      uses: docker/setup-compose-action@v1
-      with:
-        version: latest
-
     - name: Build and run containers  
+      shell: bash  # Указано bash для совместимости команд (на Windows по умолчанию PowerShell)
       run: |  
         # Опционально: проверьте наличие файла
         if [ ! -f Docker-compose.yaml ]; then
@@ -51,9 +50,10 @@
         fi
         docker compose -f Docker-compose.yaml up --build
         sleep 30
-        docker-compose ps
+        docker compose ps  # Исправлено на docker compose для консистентности
 
     - name: Verify containers are running 
+      shell: bash  # Указано bash для совместимости команд
       run: | 
         if docker compose ps | grep -q "Up"; then 
           echo "✅ All containers are running" 
@@ -61,4 +61,4 @@
           echo "❌ Some containers failed to start" 
           docker compose logs 
           exit 1 
-        fi  # +1 балл (Критерий 2) git
+        fi  # +1 балл (Критерий 2)
