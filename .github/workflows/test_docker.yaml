@@ -104,7 +104,7 @@ jobs:
         Write-Host "- Containers: Running ✅" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
         Write-Host "- DB_HOST: ${{ secrets.DB_HOST }}" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
         Write-Host "- DB_NAME: ${{ secrets.DB_NAME }}" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
-        Write-Host "- APP_PORT: ${{ secrets.APP_PORT }}" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
+        Write-Host '- APP_PORT: ${{ secrets.APP_PORT }}' | Out-File -FilePath test-report.md -Encoding UTF8 -Append
     - name: Save Docker logs 
       if: always() 
       run: | 
