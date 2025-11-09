@@ -95,15 +95,14 @@ jobs:
         }  # +1 балл (Критерий 4)
         
          # Test 2: Data consistency
-         Write-Host "2. Testing data consistency..."
+        Write-Host "2. Testing data consistency..."
         
-        # First, check if MySQL is accessible (diagnostic with root)
+        # First, check if MySQL is accessible (using container env vars)
         Write-Host "Checking MySQL connection with root..."
         try {
-          $mysqlTest = docker compose exec -T db mysql -u root -p${{ secrets.DB_ROOT_PASSWORD }} -e "SELECT 1;" -B -N 2>$null
+          $mysqlTest = docker compose exec -T db sh -c 'mysql -u root -p$MYSQL_ROOT_PASSWORD -e "SELECT 1;" -B -N' 2>$null
           if ($LASTEXITCODE -eq 0) {
             Write-Host "✅ MySQL connection with root successful"
-            $useRoot = $true
           } else {
             Write-Host "❌ MySQL connection with root failed. Checking DB logs..."
             docker compose logs db
@@ -114,12 +113,12 @@ jobs:
           exit 1
         }
         
-        # Create table if not exists (to ensure 'items' table exists)
+        # Create table if not exists (using container env vars)
         Write-Host "Ensuring 'items' table exists..."
-        docker compose exec -T db mysql -u root -p${{ secrets.DB_ROOT_PASSWORD }} -D ${{ secrets.DB_NAME }} -e "CREATE TABLE IF NOT EXISTS items (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255));" 2>$null
+        docker compose exec -T db sh -c 'mysql -u root -p$MYSQL_ROOT_PASSWORD -D $MYSQL_DATABASE -e "CREATE TABLE IF NOT EXISTS items (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255));"' 2>$null
         
-        # Get data directly from DB
-        $dbCount = docker compose exec -T db mysql -u root -p${{ secrets.DB_ROOT_PASSWORD }} -D ${{ secrets.DB_NAME }} -e "SELECT COUNT(*) FROM items;" -B -N 2>$null | ForEach-Object { $_.Trim() }
+        # Get data directly from DB (using container env vars)
+        $dbCount = docker compose exec -T db sh -c 'mysql -u root -p$MYSQL_ROOT_PASSWORD -D $MYSQL_DATABASE -e "SELECT COUNT(*) FROM items;" -B -N' 2>$null | ForEach-Object { $_.Trim() }
         if (-not $dbCount -or $LASTEXITCODE -ne 0) { 
           Write-Host "❌ Failed to query database. Setting to 0."
           $dbCount = "0" 
