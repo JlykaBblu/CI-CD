@@ -97,18 +97,14 @@ jobs:
     - name: Create test report 
       run: |
         Write-Host "📋 Creating test report..."
-        $reportContent = @"
-        # Deployment Test Report
-        - Date: $(Get-Date)
-        - Application: Healthy ✅
-        - Database: Connected ✅
-        - Data Consistency: Passed ✅
-        - Containers: Running ✅
-        - DB_HOST: ${{ secrets.DB_HOST }}
-        - DB_NAME: ${{ secrets.DB_NAME }}
-        - APP_PORT: ${{ secrets.APP_PORT }}
-        "@
-        $reportContent | Out-File -FilePath test-report.md -Encoding UTF8
+        Write-Host "# Deployment Test Report" | Out-File -FilePath test-report.md -Encoding UTF8
+        Write-Host "- Date: $(Get-Date)" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
+        Write-Host "- Application: Healthy ✅" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
+        Write-Host "- Database: Connected ✅" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
+        Write-Host "- Containers: Running ✅" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
+        Write-Host "- DB_HOST: ${{ secrets.DB_HOST }}" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
+        Write-Host "- DB_NAME: ${{ secrets.DB_NAME }}" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
+        Write-Host "- APP_PORT: ${{ secrets.APP_PORT }}" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
     - name: Save Docker logs 
       if: always() 
       run: | 
