@@ -55,7 +55,6 @@ jobs:
     - name: Save Docker logs 
       if: always() 
       run: | 
-        echo "📝 Saving Docker logs..." 
         docker-compose logs > deployment-logs.txt 
         docker images > docker-images.txt 
         docker ps -a > docker-ps.txt 
