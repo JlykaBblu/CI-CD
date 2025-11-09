@@ -93,18 +93,49 @@ jobs:
           exit 1
         }  # +1 балл (Критерий 4)
         
-        # Test 2: Data consistency
-         Write-Host "2. Testing data consistency..."
+         # Test 2: Data consistency
+        Write-Host "2. Testing data consistency..."
         
-        # Get data directly from DB (исправлено: MySQL вместо PostgreSQL)
-        $dbCount = docker compose exec -T db mysql -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASSWORD }} -D ${{ secrets.DB_NAME }} -e "SELECT COUNT(*) FROM items;" -B -N 2>$null | ForEach-Object { $_.Trim() }
-        if (-not $dbCount) { $dbCount = "0" }
+        # First, check if MySQL is accessible (diagnostic)
+        Write-Host "Checking MySQL connection..."
+        try {
+          $mysqlTest = docker compose exec -T db mysql -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASSWORD }} -D ${{ secrets.DB_NAME }} -e "SELECT 1;" -B -N 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "✅ MySQL connection successful"
+          } else {
+            Write-Host "❌ MySQL connection failed. Trying with root user..."
+            $mysqlTest = docker compose exec -T db mysql -u root -p${{ secrets.DB_ROOT_PASSWORD }} -D ${{ secrets.DB_NAME }} -e "SELECT 1;" -B -N 2>$null
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "✅ MySQL connection with root successful. Switching to root for query."
+              $useRoot = $true
+            } else {
+              Write-Host "❌ MySQL connection failed even with root. Checking DB logs..."
+              docker compose logs db
+              exit 1
+            }
+          }
+        } catch {
+          Write-Host "❌ Error checking MySQL: $($_.Exception.Message)"
+          exit 1
+        }
+        
+        # Get data directly from DB
+        if ($useRoot) {
+          $dbCount = docker compose exec -T db mysql -u root -p${{ secrets.DB_ROOT_PASSWORD }} -D ${{ secrets.DB_NAME }} -e "SELECT COUNT(*) FROM items;" -B -N 2>$null | ForEach-Object { $_.Trim() }
+        } else {
+          $dbCount = docker compose exec -T db mysql -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASSWORD }} -D ${{ secrets.DB_NAME }} -e "SELECT COUNT(*) FROM items;" -B -N 2>$null | ForEach-Object { $_.Trim() }
+        }
+        if (-not $dbCount -or $LASTEXITCODE -ne 0) { 
+          Write-Host "❌ Failed to query database. Table 'items' may not exist or query failed. Setting to 0."
+          $dbCount = "0" 
+        }
         
         # Get data via web API
         try {
           $webResponse = Invoke-WebRequest -Uri "http://localhost:${{ secrets.APP_PORT }}/api/items/count" -Method Get -TimeoutSec 10
           $webCount = $webResponse.Content.Trim()
         } catch {
+          Write-Host "❌ Failed to get web API count: $($_.Exception.Message). Setting to 0."
           $webCount = "0"
         }
         
