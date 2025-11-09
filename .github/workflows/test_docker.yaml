@@ -29,7 +29,7 @@ jobs:
     - name: Build and run containers  
       run: |
         docker compose -f Docker-compose.yaml up -d
-        Start-Sleep -Seconds 45
+        Start-Sleep -Seconds 20
         docker compose ps
 
     - name: "docker compose ps"
@@ -94,15 +94,15 @@ jobs:
         }  # +1 балл (Критерий 4)
         
         # Test 2: Data consistency
-        Write-Host "2. Testing data consistency..."
+         Write-Host "2. Testing data consistency..."
         
-        # Get data directly from DB
-        $dbCount = docker compose exec -T db psql -U ${{ secrets.DB_USER }} -d ${{ secrets.DB_NAME }} -t -c "SELECT COUNT(*) FROM items;" 2>$null | ForEach-Object { $_.Trim() }
+        # Get data directly from DB (исправлено: MySQL вместо PostgreSQL)
+        $dbCount = docker compose exec -T db mysql -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASSWORD }} -D ${{ secrets.DB_NAME }} -e "SELECT COUNT(*) FROM items;" -B -N 2>$null | ForEach-Object { $_.Trim() }
         if (-not $dbCount) { $dbCount = "0" }
         
         # Get data via web API
         try {
-          $webResponse = Invoke-WebRequest -Uri "http://localhost:${{ secrets.APP_PORT }}" -Method Get -TimeoutSec 10
+          $webResponse = Invoke-WebRequest -Uri "http://localhost:${{ secrets.APP_PORT }}/api/items/count" -Method Get -TimeoutSec 10
           $webCount = $webResponse.Content.Trim()
         } catch {
           $webCount = "0"
