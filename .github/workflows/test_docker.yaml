@@ -13,16 +13,18 @@ jobs:
 
     - name: Create .env file from secrets
       run: |
-        echo "Creating .env file from GitHub Secrets..."
-        cat > .env << EOF
+        Write-Host "Creating .env file from GitHub Secrets..."
+        $envContent = @"
         DB_PORT="${{ secrets.DB_PORT }}"
         DB_NAME="${{ secrets.DB_NAME }}"
         DB_USER="${{ secrets.DB_USER }}"
         DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
-        EOF
-        echo "✅ .env file created successfully"
-        echo "Contents (masked):"
-        cat .env | sed 's/=.*/=***/'  # +1 балл (Критерий 3)
+        "@
+        $envContent | Out-File -FilePath .env -Encoding UTF8
+        Write-Host "✅ .env file created successfully"
+        Write-Host "Contents (masked):"
+        Get-Content .env | ForEach-Object { $_ -replace '=.*', '=***' }  
+
 
     - name: Build and run containers  
       run: |
