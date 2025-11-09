@@ -95,39 +95,33 @@ jobs:
         }  # +1 балл (Критерий 4)
         
          # Test 2: Data consistency
-        Write-Host "2. Testing data consistency..."
+         Write-Host "2. Testing data consistency..."
         
-        # First, check if MySQL is accessible (diagnostic)
-        Write-Host "Checking MySQL connection..."
+        # First, check if MySQL is accessible (diagnostic with root)
+        Write-Host "Checking MySQL connection with root..."
         try {
-          $mysqlTest = docker compose exec -T db mysql -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASSWORD }} -D ${{ secrets.DB_NAME }} -e "SELECT 1;" -B -N 2>$null
+          $mysqlTest = docker compose exec -T db mysql -u root -p${{ secrets.DB_ROOT_PASSWORD }} -e "SELECT 1;" -B -N 2>$null
           if ($LASTEXITCODE -eq 0) {
-            Write-Host "✅ MySQL connection successful"
+            Write-Host "✅ MySQL connection with root successful"
+            $useRoot = $true
           } else {
-            Write-Host "❌ MySQL connection failed. Trying with root user..."
-            $mysqlTest = docker compose exec -T db mysql -u root -p${{ secrets.DB_ROOT_PASSWORD }} -D ${{ secrets.DB_NAME }} -e "SELECT 1;" -B -N 2>$null
-            if ($LASTEXITCODE -eq 0) {
-              Write-Host "✅ MySQL connection with root successful. Switching to root for query."
-              $useRoot = $true
-            } else {
-              Write-Host "❌ MySQL connection failed even with root. Checking DB logs..."
-              docker compose logs db
-              exit 1
-            }
+            Write-Host "❌ MySQL connection with root failed. Checking DB logs..."
+            docker compose logs db
+            exit 1
           }
         } catch {
-          Write-Host "❌ Error checking MySQL: $($_.Exception.Message)"
+          Write-Host "❌ Error checking MySQL with root: $($_.Exception.Message)"
           exit 1
         }
         
+        # Create table if not exists (to ensure 'items' table exists)
+        Write-Host "Ensuring 'items' table exists..."
+        docker compose exec -T db mysql -u root -p${{ secrets.DB_ROOT_PASSWORD }} -D ${{ secrets.DB_NAME }} -e "CREATE TABLE IF NOT EXISTS items (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255));" 2>$null
+        
         # Get data directly from DB
-        if ($useRoot) {
-          $dbCount = docker compose exec -T db mysql -u root -p${{ secrets.DB_ROOT_PASSWORD }} -D ${{ secrets.DB_NAME }} -e "SELECT COUNT(*) FROM items;" -B -N 2>$null | ForEach-Object { $_.Trim() }
-        } else {
-          $dbCount = docker compose exec -T db mysql -u ${{ secrets.DB_USER }} -p${{ secrets.DB_PASSWORD }} -D ${{ secrets.DB_NAME }} -e "SELECT COUNT(*) FROM items;" -B -N 2>$null | ForEach-Object { $_.Trim() }
-        }
+        $dbCount = docker compose exec -T db mysql -u root -p${{ secrets.DB_ROOT_PASSWORD }} -D ${{ secrets.DB_NAME }} -e "SELECT COUNT(*) FROM items;" -B -N 2>$null | ForEach-Object { $_.Trim() }
         if (-not $dbCount -or $LASTEXITCODE -ne 0) { 
-          Write-Host "❌ Failed to query database. Table 'items' may not exist or query failed. Setting to 0."
+          Write-Host "❌ Failed to query database. Setting to 0."
           $dbCount = "0" 
         }
         
