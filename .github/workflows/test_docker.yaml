@@ -11,18 +11,18 @@ jobs:
     - name: Checkout code 
       uses: actions/checkout@v3
 
-    - name: Create .env file from secrets 
-      run: | 
-        echo "Creating .env file from GitHub Secrets..." 
-        cat > .env << EOF  
-        DB_PORT=${{ secrets.DB_PORT }} 
-        DB_NAME=${{ secrets.DB_NAME }} 
-        DB_USER=${{ secrets.DB_USER }} 
-        DB_PASSWORD=${{ secrets.DB_PASSWORD }} 
-        EOF 
-        echo "✅ .env file created successfully" 
-        echo "Contents (masked):" 
-        cat .env | sed 's/=.*/=***/'  # +1 балл (Критерий 3) 
+    - name: Create .env file from secrets
+      run: |
+        echo "Creating .env file from GitHub Secrets..."
+        cat > .env << EOF
+        DB_PORT="${{ secrets.DB_PORT }}"
+        DB_NAME="${{ secrets.DB_NAME }}"
+        DB_USER="${{ secrets.DB_USER }}"
+        DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+        EOF
+        echo "✅ .env file created successfully"
+        echo "Contents (masked):"
+        cat .env | sed 's/=.*/=***/'  # +1 балл (Критерий 3)
 
     - name: Build and run containers  
       run: |
