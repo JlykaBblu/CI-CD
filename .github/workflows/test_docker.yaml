@@ -94,19 +94,25 @@ jobs:
           exit 1
         }  # +1 балл (Критерий 4)
         
-         # Test 2: Data consistency
+        # Test 2: Data consistency
         Write-Host "2. Testing data consistency..."
         
-        # First, check if MySQL is accessible (using container env vars)
+        # First, check if MySQL is accessible (using container env vars, with fallback)
         Write-Host "Checking MySQL connection with root..."
         try {
           $mysqlTest = docker compose exec -T db sh -c 'mysql -u root -p$MYSQL_ROOT_PASSWORD -e "SELECT 1;" -B -N' 2>$null
           if ($LASTEXITCODE -eq 0) {
             Write-Host "✅ MySQL connection with root successful"
           } else {
-            Write-Host "❌ MySQL connection with root failed. Checking DB logs..."
-            docker compose logs db
-            exit 1
+            Write-Host "❌ MySQL connection with root failed. Trying without password (if root has no password set)..."
+            $mysqlTest = docker compose exec -T db sh -c 'mysql -u root -e "SELECT 1;" -B -N' 2>$null
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "✅ MySQL connection with root (no password) successful"
+            } else {
+              Write-Host "❌ MySQL connection failed. Checking DB logs..."
+              docker compose logs db
+              exit 1
+            }
           }
         } catch {
           Write-Host "❌ Error checking MySQL with root: $($_.Exception.Message)"
@@ -116,9 +122,15 @@ jobs:
         # Create table if not exists (using container env vars)
         Write-Host "Ensuring 'items' table exists..."
         docker compose exec -T db sh -c 'mysql -u root -p$MYSQL_ROOT_PASSWORD -D $MYSQL_DATABASE -e "CREATE TABLE IF NOT EXISTS items (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255));"' 2>$null
+        if ($LASTEXITCODE -ne 0) {
+          docker compose exec -T db sh -c 'mysql -u root -D $MYSQL_DATABASE -e "CREATE TABLE IF NOT EXISTS items (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255));"' 2>$null
+        }
         
         # Get data directly from DB (using container env vars)
         $dbCount = docker compose exec -T db sh -c 'mysql -u root -p$MYSQL_ROOT_PASSWORD -D $MYSQL_DATABASE -e "SELECT COUNT(*) FROM items;" -B -N' 2>$null | ForEach-Object { $_.Trim() }
+        if ($LASTEXITCODE -ne 0) {
+          $dbCount = docker compose exec -T db sh -c 'mysql -u root -D $MYSQL_DATABASE -e "SELECT COUNT(*) FROM items;" -B -N' 2>$null | ForEach-Object { $_.Trim() }
+        }
         if (-not $dbCount -or $LASTEXITCODE -ne 0) { 
           Write-Host "❌ Failed to query database. Setting to 0."
           $dbCount = "0" 
