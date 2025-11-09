@@ -106,21 +106,24 @@ jobs:
         Write-Host "- DB_NAME: ${{ secrets.DB_NAME }}" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
         Write-Host '- APP_PORT: ${{ secrets.APP_PORT }}' | Out-File -FilePath test-report.md -Encoding UTF8 -Append
         "@
-    - name: Save artifacts 
-      uses: actions/upload-artifact@v4 
-      with: 
-        name: deployment-artifacts 
-        path: | 
-          .env 
-          test-report.md 
-          deployment-logs.txt 
-        retention-days: 30  # +1 балл (Критерий 3) 
+  
     - name: Save Docker logs 
       if: always() 
       run: | 
         docker-compose logs > deployment-logs.txt 
         docker images > docker-images.txt 
         docker ps -a > docker-ps.txt 
+        
+    - name: Save artifacts 
+      uses: actions/upload-artifact@v4 
+      with: 
+        name: deployment-artifacts 
+        path: | 
+          test-report.md 
+          deployment-logs.txt 
+          .env 
+        retention-days: 30  # +1 балл (Критерий 3) 
+
     - name: Upload Docker logs as artifact 
       uses: actions/upload-artifact@v4 
       with: 
