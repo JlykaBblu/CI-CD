@@ -29,7 +29,7 @@ jobs:
     - name: Build and run containers  
       run: |
         docker compose -f Docker-compose.yaml up -d
-        Start-Sleep -Seconds 30
+        Start-Sleep -Seconds 45
         docker compose ps
 
     - name: "docker compose ps"
@@ -49,17 +49,33 @@ jobs:
       run: |
         Write-Host "Running application tests..."
         
-        # Health check
-        try {
-          $response = Invoke-WebRequest -Uri "http://localhost:${{ secrets.APP_PORT }}/health" -Method Get -TimeoutSec 10
-          if ($response.StatusCode -eq 200) {
-            Write-Host "✅ Web application is healthy"
-          } else {
-            Write-Host "❌ Web application health check failed"
-            exit 1
+        # Health check with retry
+        $maxRetries = 5
+        $retryCount = 0
+        $healthOk = $false
+        while ($retryCount -lt $maxRetries -and -not $healthOk) {
+          try {
+            $response = Invoke-WebRequest -Uri "http://localhost:${{ secrets.APP_PORT }}/health" -Method Get -TimeoutSec 10
+            if ($response.StatusCode -eq 200) {
+              Write-Host "✅ Web application is healthy"
+              $healthOk = $true
+            } else {
+              Write-Host "❌ Web application health check failed (Status: $($response.StatusCode))"
+            }
+          } catch {
+            Write-Host "❌ Web application health check failed: $($_.Exception.Message)"
           }
-        } catch {
-          Write-Host "❌ Web application health check failed: $($_.Exception.Message)"
+          if (-not $healthOk) {
+            $retryCount++
+            if ($retryCount -lt $maxRetries) {
+              Write-Host "Retrying health check in 10 seconds... ($retryCount/$maxRetries)"
+              Start-Sleep -Seconds 10
+            }
+          }
+        }
+        if (-not $healthOk) {
+          Write-Host "❌ Health check failed after $maxRetries retries. Checking logs..."
+          docker compose logs
           exit 1
         }
         
@@ -114,11 +130,11 @@ jobs:
         - Containers: Running ✅
         - DB_HOST: ${{ secrets.DB_HOST }}
         - DB_NAME: ${{ secrets.DB_NAME }}
+        - APP_PORT: ${{ secrets.APP_PORT }}
         - Database records: $dbCount
         - Web API records: $webCount
         "@
         $reportContent | Out-File -FilePath test-report.md -Encoding UTF8
-        
     - name: Save Docker logs 
       if: always() 
       run: | 
@@ -132,19 +148,12 @@ jobs:
         name: deployment-artifacts 
         path: | 
           .env 
+          test-report.md
           deployment-logs.txt 
           docker-images.txt 
           docker-ps.txt 
         retention-days: 30  # +1 балл (Критерий 3) 
 
-    - name: Upload Docker logs as artifact 
-      uses: actions/upload-artifact@v4 
-      with: 
-        name: docker-logs 
-        path: | 
-          deployment-logs.txt 
-          docker-images.txt 
-          docker-ps.txt 
-        retention-days: 30    
+  
   
         
