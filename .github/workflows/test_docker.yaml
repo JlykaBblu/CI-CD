@@ -30,7 +30,7 @@ jobs:
     - name: Build and run containers  
       run: |
         docker compose -f Docker-compose.yaml up -d
-        Start-Sleep -Seconds 20
+        Start-Sleep -Seconds 15
         docker compose ps
 
     - name: "docker compose ps"
@@ -93,9 +93,7 @@ jobs:
           Write-Host "❌ Application database connection failed: $($_.Exception.Message)"
           exit 1
         }  # +1 балл (Критерий 4)
-        
-        
-
+      
     - name: Create test report 
       run: |
         Write-Host "📋 Creating test report..."
@@ -109,8 +107,6 @@ jobs:
         - DB_HOST: ${{ secrets.DB_HOST }}
         - DB_NAME: ${{ secrets.DB_NAME }}
         - APP_PORT: ${{ secrets.APP_PORT }}
-        - Database records: $dbCount
-        - Web API records: $webCount
         "@
         $reportContent | Out-File -FilePath test-report.md -Encoding UTF8
     - name: Save Docker logs 
