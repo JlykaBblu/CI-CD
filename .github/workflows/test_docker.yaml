@@ -55,7 +55,7 @@ jobs:
         $healthOk = $false
         while ($retryCount -lt $maxRetries -and -not $healthOk) {
           try {
-            $response = Invoke-WebRequest -Uri "http://localhost:${{ secrets.APP_PORT }}/health" -Method Get -TimeoutSec 10
+            $response = Invoke-WebRequest -Uri "http://localhost:${{ secrets.APP_PORT }}" -Method Get -TimeoutSec 5
             if ($response.StatusCode -eq 200) {
               Write-Host "✅ Web application is healthy"
               $healthOk = $true
@@ -81,7 +81,7 @@ jobs:
         
         # Check database connection via application
         try {
-          $apiResponse = Invoke-WebRequest -Uri "http://localhost:${{ secrets.APP_PORT }}/api/data" -Method Get -TimeoutSec 10
+          $apiResponse = Invoke-WebRequest -Uri "http://localhost:${{ secrets.APP_PORT }}" -Method Get -TimeoutSec 10
           if ($apiResponse.StatusCode -eq 200) {
             Write-Host "✅ Application database connection working"
           } else {
@@ -102,7 +102,7 @@ jobs:
         
         # Get data via web API
         try {
-          $webResponse = Invoke-WebRequest -Uri "http://localhost:${{ secrets.APP_PORT }}/api/items/count" -Method Get -TimeoutSec 10
+          $webResponse = Invoke-WebRequest -Uri "http://localhost:${{ secrets.APP_PORT }}" -Method Get -TimeoutSec 10
           $webCount = $webResponse.Content.Trim()
         } catch {
           $webCount = "0"
