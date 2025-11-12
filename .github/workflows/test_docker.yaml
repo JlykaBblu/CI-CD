@@ -1,3 +1,138 @@
+# name: ci/cd devops
+# on: 
+#   push:
+#     branches: [main]
+#   workflow_dispatch:
+#     branches: [main]
+# jobs: 
+#   build:
+#     runs-on: self-hosted  
+#     steps:
+#     - name: Checkout code 
+#       uses: actions/checkout@v3
+
+#     - name: Create .env file from secrets
+#       run: |
+#         Write-Host "Creating .env file from GitHub Secrets..."
+#         $envContent = @"
+#         DB_PORT="${{ secrets.DB_PORT }}"
+#         DB_NAME="${{ secrets.DB_NAME }}"
+#         DB_USER="${{ secrets.DB_USER }}"
+#         DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+#         DB_ROOT_PASSWORD="${{ secrets.DB_ROOT_PASSWORD }}"
+#         APP_PORT="${{ secrets.APP_PORT }}"
+#         "@
+#         $envContent | Out-File -FilePath .env -Encoding UTF8
+#         Write-Host "✅ .env file created successfully"
+#         Write-Host "Contents (masked):"
+#         Get-Content .env | ForEach-Object { $_ -replace '=.*', '=***' }  
+
+#     - name: Build and run containers  
+#       run: |
+#         docker compose -f Docker-compose.yaml up -d
+#         Start-Sleep -Seconds 15
+#         docker compose ps
+
+#     - name: "docker compose ps"
+#       run: docker compose ps   
+
+#     - name: Verify containers are running 
+#       run: | 
+#         $psOutput = docker compose ps
+#         if ($psOutput | Select-String -Quiet "Up") {
+#           Write-Host "✅ All containers are running"
+#         } else {
+#           Write-Host "❌ Some containers failed to start"
+#           docker compose logs
+#           exit 1
+#         } 
+#     - name: Run application tests 
+#       run: |
+#         Write-Host "Running application tests..."
+        
+#         # Health check with retry
+#         $maxRetries = 5
+#         $retryCount = 0
+#         $healthOk = $false
+#         while ($retryCount -lt $maxRetries -and -not $healthOk) {
+#           try {
+#             $response = Invoke-WebRequest -Uri "http://localhost:${{ secrets.APP_PORT }}" -Method Get -TimeoutSec 5
+#             if ($response.StatusCode -eq 200) {
+#               Write-Host "✅ Web application is healthy"
+#               $healthOk = $true
+#             } else {
+#               Write-Host "❌ Web application health check failed (Status: $($response.StatusCode))"
+#             }
+#           } catch {
+#             Write-Host "❌ Web application health check failed: $($_.Exception.Message)"
+#           }
+#           if (-not $healthOk) {
+#             $retryCount++
+#             if ($retryCount -lt $maxRetries) {
+#               Write-Host "Retrying health check in 10 seconds... ($retryCount/$maxRetries)"
+#               Start-Sleep -Seconds 10
+#             }
+#           }
+#         }
+#         if (-not $healthOk) {
+#           Write-Host "❌ Health check failed after $maxRetries retries. Checking logs..."
+#           docker compose logs
+#           exit 1
+#         }
+        
+#         # Check database connection via application
+#         try {
+#           $apiResponse = Invoke-WebRequest -Uri "http://localhost:${{ secrets.APP_PORT }}" -Method Get -TimeoutSec 10
+#           if ($apiResponse.StatusCode -eq 200) {
+#             Write-Host "✅ Application database connection working"
+#           } else {
+#             Write-Host "❌ Application database connection failed"
+#             exit 1
+#           }
+#         } catch {
+#           Write-Host "❌ Application database connection failed: $($_.Exception.Message)"
+#           exit 1
+#         } 
+      
+#     - name: Create test report 
+#       run: |
+#         Write-Host "📋 Creating test report..."
+#         Write-Host "# Deployment Test Report" | Out-File -FilePath test-report.md -Encoding UTF8
+#         Write-Host "- Date: $(Get-Date)" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
+#         Write-Host "- Application: Healthy ✅" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
+#         Write-Host "- Database: Connected ✅" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
+#         Write-Host "- Containers: Running ✅" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
+#         Write-Host "- DB_HOST: ${{ secrets.DB_HOST }}" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
+#         Write-Host "- DB_NAME: ${{ secrets.DB_NAME }}" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
+#         Write-Host "- APP_PORT: ${{ secrets.APP_PORT }}" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
+#         "@
+  
+#     - name: Save Docker logs 
+#       if: always() 
+#       run: | 
+#         docker-compose logs > deployment-logs.txt 
+#         docker images > docker-images.txt 
+#         docker ps -a > docker-ps.txt 
+
+#     - name: Save artifacts 
+#       uses: actions/upload-artifact@v4 
+#       with: 
+#         name: deployment-artifacts 
+#         path: | 
+#           test-report.md 
+#           deployment-logs.txt 
+#           .env 
+#         retention-days: 30  
+
+#     - name: Upload Docker logs as artifact 
+#       uses: actions/upload-artifact@v4 
+#       with: 
+#         name: docker-logs 
+#         path: | 
+#           deployment-logs.txt 
+#           docker-images.txt 
+#           docker-ps.txt 
+#         retention-days: 30 
 name: ci/cd devops
 on: 
   push:
@@ -14,21 +149,75 @@ jobs:
     - name: Create .env file from secrets
       run: |
         Write-Host "Creating .env file from GitHub Secrets..."
+        
+        # Проверяем, что секреты существуют
+        Write-Host "Checking secrets availability..."
+        $secrets = @(
+          "DB_HOST", "DB_PORT", "DB_NAME", "DB_USER", 
+          "DB_PASSWORD", "DB_ROOT_PASSWORD", "APP_PORT"
+        )
+        
+        foreach ($secret in $secrets) {
+          if (-not [string]::IsNullOrEmpty("${{ secrets.$secret }}")) {
+            Write-Host "✅ Secret $secret is available"
+          } else {
+            Write-Host "❌ Secret $secret is empty or not set"
+          }
+        }
+        
+        # Создаем .env файл
         $envContent = @"
-        DB_PORT="${{ secrets.DB_PORT }}"
-        DB_NAME="${{ secrets.DB_NAME }}"
-        DB_USER="${{ secrets.DB_USER }}"
-        DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
-        DB_ROOT_PASSWORD="${{ secrets.DB_ROOT_PASSWORD }}"
-        APP_PORT="${{ secrets.APP_PORT }}"
+        DB_HOST=${{ secrets.DB_HOST }}
+        DB_PORT=${{ secrets.DB_PORT }}
+        DB_NAME=${{ secrets.DB_NAME }}
+        DB_USER=${{ secrets.DB_USER }}
+        DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+        DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}
+        APP_PORT=${{ secrets.APP_PORT }}
         "@
-        $envContent | Out-File -FilePath .env -Encoding UTF8
-        Write-Host "✅ .env file created successfully"
-        Write-Host "Contents (masked):"
-        Get-Content .env | ForEach-Object { $_ -replace '=.*', '=***' }  
+        
+        Write-Host "Writing .env file content..."
+        $envContent | Out-File -FilePath .env -Encoding UTF8 -Force
+        
+        # Проверяем что файл создан и не пустой
+        Write-Host "Verifying .env file..."
+        if (Test-Path .env) {
+          $fileSize = (Get-Item .env).Length
+          $fileContent = Get-Content .env -Raw
+          Write-Host "✅ .env file created successfully"
+          Write-Host "📄 File size: $fileSize bytes"
+          Write-Host "📝 File content preview (masked):"
+          Get-Content .env | ForEach-Object { 
+            if ($_ -match '^([^=]+)=(.+)$') {
+              "$($matches[1])=***"
+            } else {
+              $_
+            }
+          }
+          
+          # Выводим количество строк для проверки
+          $lineCount = (Get-Content .env).Length
+          Write-Host "📊 Lines in .env file: $lineCount"
+        } else {
+          Write-Host "❌ .env file was not created"
+          exit 1
+        }
+
+    - name: List files before build
+      run: |
+        Write-Host "📁 Current directory contents:"
+        Get-ChildItem -Force
+        Write-Host "🔍 Checking .env file details:"
+        if (Test-Path .env) {
+          Get-Item .env
+          Write-Host "Content length: $((Get-Content .env -Raw).Length) characters"
+        } else {
+          Write-Host "❌ .env file not found!"
+        }
 
     - name: Build and run containers  
       run: |
+        Write-Host "🚀 Starting Docker containers..."
         docker compose -f Docker-compose.yaml up -d
         Start-Sleep -Seconds 15
         docker compose ps
@@ -46,6 +235,7 @@ jobs:
           docker compose logs
           exit 1
         } 
+
     - name: Run application tests 
       run: |
         Write-Host "Running application tests..."
@@ -102,15 +292,31 @@ jobs:
         Write-Host "- Application: Healthy ✅" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
         Write-Host "- Database: Connected ✅" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
         Write-Host "- Containers: Running ✅" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
-        Write-Host "- DB_HOST: ${{ secrets.DB_HOST }}" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
-        Write-Host "- DB_NAME: ${{ secrets.DB_NAME }}" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
-        Write-Host "- APP_PORT: ${{ secrets.APP_PORT }}" | Out-File -FilePath test-report.md -Encoding UTF8 -Append
-        "@
-  
+
+    - name: List files before artifacts
+      run: |
+        Write-Host "📁 Files that will be included in artifacts:"
+        Get-ChildItem -Force
+        Write-Host "🔍 Final .env file check:"
+        if (Test-Path .env) {
+          $envContent = Get-Content .env -Raw
+          Write-Host "✅ .env file exists, size: $($envContent.Length) characters"
+          Write-Host "First few lines (masked):"
+          Get-Content .env | Select-Object -First 5 | ForEach-Object { 
+            if ($_ -match '^([^=]+)=(.+)$') {
+              "$($matches[1])=***"
+            } else {
+              $_
+            }
+          }
+        else {
+          Write-Host "❌ .env file not found!"
+        }
+
     - name: Save Docker logs 
       if: always() 
       run: | 
-        docker-compose logs > deployment-logs.txt 
+        docker compose logs > deployment-logs.txt 
         docker images > docker-images.txt 
         docker ps -a > docker-ps.txt 
 
@@ -121,15 +327,11 @@ jobs:
         path: | 
           test-report.md 
           deployment-logs.txt 
-          .env 
-        retention-days: 30  
+          .env
+          docker-images.txt
+          docker-ps.txt
+        retention-days: 30
 
-    - name: Upload Docker logs as artifact 
-      uses: actions/upload-artifact@v4 
-      with: 
-        name: docker-logs 
-        path: | 
-          deployment-logs.txt 
-          docker-images.txt 
-          docker-ps.txt 
-        retention-days: 30 
+    - name: Verify artifact upload
+      run: |
+        Write-Host "✅ Artifacts should include: test-report.md, deployment-logs.txt, .env, docker-images.txt, docker-ps.txt"

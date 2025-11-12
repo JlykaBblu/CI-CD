@@ -25,7 +25,7 @@ def init_db():
     cur = conn.cursor(Cursor)  
     cur.execute('''
         CREATE TABLE IF NOT EXISTS users (
-            id INT AUTO_INCREMENT PRIMARY KEY,
+            id INT AUTO_INCREMENT PRIMARY KbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbEY,
             name VARCHAR(100),
             email VARCHAR(100)
         )
