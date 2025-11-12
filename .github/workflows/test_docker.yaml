@@ -47,6 +47,7 @@ jobs:
         } else {
           Write-Host "❌ .env file was not created"
           exit 1
+        }
 
 
     - name: Build and run containers  
