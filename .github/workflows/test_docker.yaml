@@ -32,7 +32,6 @@ jobs:
           $fileContent = Get-Content .env -Raw
           Write-Host "✅ .env file created successfully"
           Write-Host "📄 File size: $fileSize bytes"
-          Write-Host "📝 File content preview (masked):"
           Get-Content .env | ForEach-Object { 
             if ($_ -match '^([^=]+)=(.+)$') {
               "$($matches[1])=***"
