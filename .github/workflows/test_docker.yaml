@@ -25,17 +25,18 @@ jobs:
         $envContent | Out-File -FilePath .env -Encoding UTF8 -Force
         Write-Host "✅ .env file created successfully"
         Write-Host "Contents (masked):"
-        # Get-Content .env | ForEach-Object { $_ -replace '=.*', '=***' }  
+        
         Write-Host "Verifying .env file..."
         if (Test-Path .env) {
           $fileSize = (Get-Item .env).Length
           $fileContent = Get-Content .env -Raw
-          Write-Host "✅ .env file created successfully"
+          Write-Host "✅ .env file verified successfully"
           Write-Host "📄 File size: $fileSize bytes"
           Get-Content .env | ForEach-Object { 
             if ($_ -match '^([^=]+)=(.+)$') {
               "$($matches[1])=***"
-            } else {
+            } 
+            else {
               $_
             }
           }
@@ -47,7 +48,6 @@ jobs:
           Write-Host "❌ .env file was not created"
           exit 1
         }
-
 
     - name: Build and run containers  
       run: |
