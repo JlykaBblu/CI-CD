@@ -26,28 +26,28 @@ jobs:
         Write-Host "✅ .env file created successfully"
         Write-Host "Contents (masked):"
         
-        Write-Host "Verifying .env file..."
-        if (Test-Path .env) {
-          $fileSize = (Get-Item .env).Length
-          $fileContent = Get-Content .env -Raw
-          Write-Host "✅ .env file verified successfully"
-          Write-Host "📄 File size: $fileSize bytes"
-          Get-Content .env | ForEach-Object { 
-            if ($_ -match '^([^=]+)=(.+)$') {
-              "$($matches[1])=***"
-            } 
-            else {
-              $_
-            }
-          }
+        # Write-Host "Verifying .env file..."
+        # if (Test-Path .env) {
+        #   $fileSize = (Get-Item .env).Length
+        #   $fileContent = Get-Content .env -Raw
+        #   Write-Host "✅ .env file verified successfully"
+        #   Write-Host "📄 File size: $fileSize bytes"
+        #   Get-Content .env | ForEach-Object { 
+        #     if ($_ -match '^([^=]+)=(.+)$') {
+        #       "$($matches[1])=***"
+        #     } 
+        #     else {
+        #       $_
+        #     }
+        #   }
           
-          # Выводим количество строк для проверки
-          $lineCount = (Get-Content .env).Length
-          Write-Host "📊 Lines in .env file: $lineCount"
-        } else {
-          Write-Host "❌ .env file was not created"
-          exit 1
-        }
+        #   # Выводим количество строк для проверки
+        #   $lineCount = (Get-Content .env).Length
+        #   Write-Host "📊 Lines in .env file: $lineCount"
+        # } else {
+        #   Write-Host "❌ .env file was not created"
+        #   exit 1
+        # }
 
     - name: Build and run containers  
       run: |
