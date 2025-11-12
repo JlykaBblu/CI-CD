@@ -22,32 +22,10 @@ jobs:
         DB_ROOT_PASSWORD="${{ secrets.DB_ROOT_PASSWORD }}"
         APP_PORT="${{ secrets.APP_PORT }}"
         "@
-        $envContent | Out-File -FilePath .env -Encoding UTF8 -Force
+        $envContent | Out-File -FilePath .env -Encoding UTF8
         Write-Host "✅ .env file created successfully"
         Write-Host "Contents (masked):"
-        
-        # Write-Host "Verifying .env file..."
-        # if (Test-Path .env) {
-        #   $fileSize = (Get-Item .env).Length
-        #   $fileContent = Get-Content .env -Raw
-        #   Write-Host "✅ .env file verified successfully"
-        #   Write-Host "📄 File size: $fileSize bytes"
-        #   Get-Content .env | ForEach-Object { 
-        #     if ($_ -match '^([^=]+)=(.+)$') {
-        #       "$($matches[1])=***"
-        #     } 
-        #     else {
-        #       $_
-        #     }
-        #   }
-          
-        #   # Выводим количество строк для проверки
-        #   $lineCount = (Get-Content .env).Length
-        #   Write-Host "📊 Lines in .env file: $lineCount"
-        # } else {
-        #   Write-Host "❌ .env file was not created"
-        #   exit 1
-        # }
+        Get-Content .env | ForEach-Object { $_ -replace '=.*', '=***' }  
 
     - name: Build and run containers  
       run: |
